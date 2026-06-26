@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediDeck — Health Roguelike</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --surface3: #30363d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --purple: #bc8cff;
+    --orange: #ffa657;
+    --teal: #39d353;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* =================== SCREENS =================== */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* =================== TITLE SCREEN =================== */
+  #screen-title {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: radial-gradient(ellipse at 50% 30%, #1a2744 0%, #0d1117 60%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #screen-title::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2358a6ff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  .title-logo {
+    font-size: 72px;
+    font-weight: 700;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #58a6ff, #bc8cff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .title-cross {
+    font-size: 80px;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 0 20px rgba(88,166,255,0.4));
+  }
+
+  .title-sub {
+    font-size: 16px;
+    color: var(--muted);
+    margin-bottom: 48px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #1f6feb, #8957e5);
+    color: white;
+    border: none;
+    padding: 16px 48px;
+    font-size: 18px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: transform 0.1s, box-shadow 0.1s;
+    position: relative;
+  }
+
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(31,111,235,0.4); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* =================== CHAR SELECT =================== */
+  #screen-char {
+    padding: 48px 24px;
+    align-items: center;
+  }
+
+  .screen-heading {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .screen-sub {
+    color: var(--muted);
+    margin-bottom: 40px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    max-width: 900px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+
+  .char-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+    text-align: center;
+  }
+
+  .char-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .char-card.selected { border-color: var(--accent); background: #1a2744; }
+
+  .char-emoji { font-size: 48px; margin-bottom: 12px; }
+  .char-name { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .char-role { font-size: 12px; color: var(--accent); font-family: 'Space Mono', monospace; text-transform: uppercase; margin-bottom: 12px; }
+  .char-desc { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 16px; }
+
+  .stat-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .stat-bar { height: 4px; background: var(--surface3); border-radius: 2px; margin-bottom: 8px; overflow: hidden; }
+  .stat-fill { height: 100%; border-radius: 2px; background: var(--green); }
+
+  /* =================== GAME SCREEN =================== */
+  #screen-game {
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Top HUD */
+  .hud {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+
+  .hud-name {
+    font-weight: 700;
+    font-size: 16px;
+    flex: 1;
+  }
+
+  .hud-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .hp-bar { width: 120px; height: 8px; background: var(--surface3); border-radius: 4px; overflow: hidden; }
+  .hp-fill { height: 100%; border-radius: 4px; background: var(--green); transition: width 0.4s; }
+
+  .energy-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--yellow);
+    border: 2px solid var(--surface3);
+    transition: background 0.2s;
+  }
+  .energy-dot.empty { background: var(--surface3); }
+
+  .stage-badge {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Combat area */
+  .combat-area {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Enemy panel */
+  .enemy-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    gap: 20px;
+  }
+
+  .enemy-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    max-width: 280px;
+    width: 100%;
+    position: relative;
+  }
+
+  .enemy-emoji { font-size: 64px; margin-bottom: 8px; display: block; }
+  .enemy-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .enemy-type { font-size: 11px; color: var(--red); font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  
+  .enemy-hp-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .enemy-hp-bar { flex: 1; height: 8px; background: var(--surface3); border-radius: 4px; overflow: hidden; }
+  .enemy-hp-fill { height: 100%; border-radius: 4px; background: var(--red); transition: width 0.4s; }
+  .enemy-hp-text { font-size: 12px; font-family: 'Space Mono', monospace; color: var(--muted); min-width: 60px; text-align: right; }
+
+  .intent-box {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .debuff-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .debuff-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .debuff-tag.burn { background: rgba(255,166,87,0.2); color: var(--orange); border: 1px solid rgba(255,166,87,0.3); }
+  .debuff-tag.weak { background: rgba(188,140,255,0.2); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+  .debuff-tag.slow { background: rgba(88,166,255,0.2); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .debuff-tag.stun { background: rgba(248,81,73,0.2); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+
+  /* Log panel */
+  .log-panel {
+    width: 240px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .log-title {
+    padding: 12px 16px;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .log-entries {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .log-entry {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+    padding: 6px 8px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border-left: 2px solid var(--border);
+  }
+  .log-entry.player { border-left-color: var(--accent); color: var(--text); }
+  .log-entry.enemy { border-left-color: var(--red); }
+  .log-entry.system { border-left-color: var(--yellow); color: var(--yellow); }
+  .log-entry.heal { border-left-color: var(--green); color: var(--green); }
+
+  /* Hand + controls */
+  .hand-area {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    flex-shrink: 0;
+  }
+
+  .hand-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .deck-info {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .btn-end-turn {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .btn-end-turn:hover { border-color: var(--accent); background: #1a2744; }
+
+  .hand-cards {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    min-height: 140px;
+    align-items: flex-start;
+  }
+
+  .play-card {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    min-width: 120px;
+    max-width: 130px;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .play-card:hover:not(.disabled) {
+    transform: translateY(-12px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 24px rgba(88,166,255,0.2);
+    z-index: 10;
+  }
+  .play-card.disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .card-cost {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: 24px;
+    height: 24px;
+    background: var(--yellow);
+    color: #000;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+  }
+  .card-cost.free { background: var(--green); }
+
+  .card-icon { font-size: 28px; text-align: center; margin-bottom: 6px; }
+  .card-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; text-align: center; }
+  .card-type-badge { 
+    font-size: 9px; 
+    font-family: 'Space Mono', monospace; 
+    text-align: center; 
+    padding: 2px 6px; 
+    border-radius: 10px; 
+    margin-bottom: 6px;
+    display: inline-block;
+    width: 100%;
+  }
+  .type-treatment { background: rgba(63,185,80,0.2); color: var(--green); }
+  .type-diagnosis { background: rgba(88,166,255,0.2); color: var(--accent); }
+  .type-prevention { background: rgba(188,140,255,0.2); color: var(--purple); }
+  .type-emergency { background: rgba(248,81,73,0.2); color: var(--red); }
+
+  .card-desc { font-size: 10px; color: var(--muted); line-height: 1.4; text-align: center; }
+
+  /* =================== FACT CARD OVERLAY =================== */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .overlay.active { display: flex; }
+
+  .fact-card-popup {
+    background: var(--surface);
+    border: 1.5px solid var(--accent);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .fact-emoji { font-size: 56px; margin-bottom: 16px; }
+  .fact-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--accent); }
+  .fact-body { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
+  .fact-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    padding: 4px 12px;
+    background: rgba(88,166,255,0.15);
+    color: var(--accent);
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+
+  /* =================== REWARD SCREEN =================== */
+  #screen-reward {
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+
+  .reward-title { font-size: 32px; font-weight: 700; margin-bottom: 8px; text-align: center; }
+  .reward-sub { color: var(--muted); margin-bottom: 40px; text-align: center; }
+  .reward-cards {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+
+  .reward-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    width: 180px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+    text-align: center;
+  }
+  .reward-card:hover { border-color: var(--green); transform: translateY(-4px); }
+
+  .btn-skip {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 10px 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    transition: color 0.15s;
+    display: block;
+    margin: 0 auto;
+  }
+  .btn-skip:hover { color: var(--text); }
+
+  /* =================== MAP SCREEN =================== */
+  #screen-map {
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    flex-direction: column;
+  }
+
+  .map-nodes {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin: 32px 0;
+  }
+
+  .map-row {
+    display: flex;
+    gap: 32px;
+    margin: 0;
+    position: relative;
+  }
+
+  .map-node {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+    position: relative;
+    margin: 12px;
+  }
+  .map-node:hover:not(.locked) { border-color: var(--accent); transform: scale(1.1); }
+  .map-node.current { border-color: var(--yellow); box-shadow: 0 0 16px rgba(210,153,34,0.4); }
+  .map-node.completed { border-color: var(--green); }
+  .map-node.locked { opacity: 0.3; cursor: not-allowed; }
+  .map-node.boss { border-color: var(--red); }
+  .map-node.boss:hover:not(.locked) { border-color: var(--red); box-shadow: 0 0 16px rgba(248,81,73,0.4); }
+
+  .node-label {
+    position: absolute;
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    white-space: nowrap;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* =================== GAME OVER =================== */
+  #screen-over {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 48px 24px;
+  }
+
+  .over-emoji { font-size: 80px; margin-bottom: 24px; }
+  .over-title { font-size: 40px; font-weight: 700; margin-bottom: 12px; }
+  .over-sub { color: var(--muted); margin-bottom: 40px; font-size: 16px; line-height: 1.6; }
+
+  /* =================== WIN SCREEN =================== */
+  #screen-win {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 48px 24px;
+    background: radial-gradient(ellipse at 50% 30%, #1a3a1a 0%, #0d1117 70%);
+  }
+
+  /* =================== DAMAGE FLOAT =================== */
+  .dmg-float {
+    position: fixed;
+    font-size: 24px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    pointer-events: none;
+    z-index: 200;
+    animation: floatUp 1s ease-out forwards;
+  }
+  .dmg-float.damage { color: var(--red); }
+  .dmg-float.heal-float { color: var(--green); }
+  .dmg-float.shield { color: var(--accent); }
+
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+  /* Shake animation */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  .shake { animation: shake 0.3s ease; }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  .pulse { animation: pulse 0.4s ease; }
+
+  .tooltip-card {
+    position: fixed;
+    background: var(--surface);
+    border: 1.5px solid var(--accent);
+    border-radius: 10px;
+    padding: 12px;
+    width: 200px;
+    z-index: 300;
+    pointer-events: none;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="screen-title" class="screen active">
+  <div style="position:relative;z-index:1;">
+    <div class="title-cross">⚕️</div>
+    <div class="title-logo">MediDeck</div>
+    <div class="title-sub">Health Roguelike • Deck Builder</div>
+    <button class="btn-primary" onclick="showScreen('char')">Mulai Permainan</button>
+    <p style="margin-top:24px;font-size:13px;color:var(--muted);">Kalahkan penyakit • Kuasai ilmu kesehatan</p>
+  </div>
+</div>
+
+<!-- CHAR SELECT -->
+<div id="screen-char" class="screen">
+  <div class="screen-heading">Pilih Karakter</div>
+  <div class="screen-sub">Setiap karakter memiliki gaya deck yang berbeda</div>
+  <div class="char-grid" id="char-grid"></div>
+  <button class="btn-primary" id="btn-start-run" onclick="startRun()" style="opacity:0.4;cursor:not-allowed;" disabled>
+    Mulai Run →
+  </button>
+</div>
+
+<!-- MAP -->
+<div id="screen-map" class="screen">
+  <div class="screen-heading" id="map-stage-label">Pilih Node</div>
+  <div class="screen-sub">Kalahkan semua musuh untuk maju ke stage berikutnya</div>
+  <div class="map-nodes" id="map-nodes"></div>
+  <p style="font-size:13px;color:var(--muted);margin-top:24px;">HP: <span id="map-hp" style="color:var(--green);font-weight:600;"></span></p>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-name" id="hud-char-name">—</div>
+    <div class="hud-stat">
+      <span style="font-size:16px;">❤️</span>
+      <div class="hp-bar"><div class="hp-fill" id="player-hp-bar" style="width:100%"></div></div>
+      <span style="font-size:12px;font-family:'Space Mono',monospace;" id="player-hp-text">80/80</span>
+    </div>
+    <div class="hud-stat" id="energy-dots"></div>
+    <div class="stage-badge" id="hud-stage">STAGE 1</div>
+  </div>
+
+  <!-- COMBAT -->
+  <div class="combat-area">
+    <div class="enemy-panel">
+      <div class="enemy-card" id="enemy-card">
+        <span class="enemy-emoji" id="enemy-emoji">🦠</span>
+        <div class="enemy-name" id="enemy-name">Loading...</div>
+        <div class="enemy-type" id="enemy-type">PATHOGEN</div>
+        <div class="enemy-hp-wrap">
+          <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="enemy-hp-bar"></div></div>
+          <div class="enemy-hp-text" id="enemy-hp-text">0/0</div>
+        </div>
+        <div class="intent-box" id="enemy-intent">
+          <span>⚔️</span> <span id="intent-text">Bersiap menyerang...</span>
+        </div>
+        <div class="debuff-list" id="enemy-debuffs"></div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;max-width:280px;width:100%;">
+        <div style="font-size:11px;font-family:'Space Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Fakta Medis</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5;" id="enemy-fact">Hover kartu untuk melihat efeknya.</div>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <div class="log-title">Combat Log</div>
+      <div class="log-entries" id="log-entries"></div>
+    </div>
+  </div>
+
+  <!-- HAND -->
+  <div class="hand-area">
+    <div class="hand-controls">
+      <div class="deck-info">
+        <span>🃏 Deck: <span id="deck-count">0</span></span>
+        <span>🗑️ Discard: <span id="discard-count">0</span></span>
+        <span>✋ Tangan: <span id="hand-count">0</span></span>
+      </div>
+      <button class="btn-end-turn" onclick="endTurn()">Akhiri Giliran ⏎</button>
+    </div>
+    <div class="hand-cards" id="hand-cards"></div>
+  </div>
+</div>
+
+<!-- REWARD -->
+<div id="screen-reward" class="screen">
+  <div class="reward-title">✨ Musuh Dikalahkan!</div>
+  <div class="reward-sub">Pilih satu kartu untuk ditambahkan ke deck kamu</div>
+  <div class="reward-cards" id="reward-cards"></div>
+  <button class="btn-skip" onclick="skipReward()">Lewati — Lanjut ke map</button>
+</div>
+
+<!-- GAME OVER -->
+<div id="screen-over" class="screen">
+  <div class="over-emoji">💀</div>
+  <div class="over-title" style="color:var(--red);">Pasien Meninggal</div>
+  <div class="over-sub" id="over-sub">HP kamu habis.<br>Tapi pengetahuan tetap bertahan.</div>
+  <div style="margin-bottom:32px;padding:20px;background:var(--surface);border-radius:12px;border:1px solid var(--border);max-width:400px;">
+    <div style="font-size:12px;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:8px;">FACT CARDS TERKUMPUL</div>
+    <div id="collected-facts" style="font-size:14px;color:var(--text);line-height:1.8;"></div>
+  </div>
+  <button class="btn-primary" onclick="restartGame()">Coba Lagi</button>
+</div>
+
+<!-- WIN -->
+<div id="screen-win" class="screen">
+  <div style="font-size:80px;margin-bottom:24px;">🏆</div>
+  <div style="font-size:40px;font-weight:700;margin-bottom:12px;color:var(--green);">Semua Penyakit Dikalahkan!</div>
+  <div style="color:var(--muted);margin-bottom:40px;font-size:16px;line-height:1.6;">
+    Kamu telah menguasai ilmu kesehatan.<br>Run selesai!
+  </div>
+  <div style="margin-bottom:32px;padding:24px;background:var(--surface);border-radius:12px;border:1px solid var(--border);max-width:480px;text-align:left;">
+    <div style="font-size:12px;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:12px;">PENGETAHUAN YANG DIPEROLEH</div>
+    <div id="win-facts" style="font-size:13px;color:var(--muted);line-height:1.8;"></div>
+  </div>
+  <button class="btn-primary" onclick="restartGame()">Main Lagi</button>
+</div>
+
+<!-- FACT OVERLAY -->
+<div class="overlay" id="fact-overlay">
+  <div class="fact-card-popup" id="fact-popup">
+    <div class="fact-emoji" id="fact-emoji">🦠</div>
+    <div class="fact-tag" id="fact-tag">FACT CARD</div>
+    <div class="fact-title" id="fact-title">Judul Fakta</div>
+    <div class="fact-body" id="fact-body">Isi fakta kesehatan...</div>
+    <button class="btn-primary" onclick="closeFact()" style="font-size:14px;padding:12px 32px;">
+      Mengerti! Lanjut →
+    </button>
+  </div>
+</div>
+
+<div class="tooltip-card" id="tooltip-card"></div>
+
+<script>
+// =================== DATA ===================
+
+const CHARACTERS = [
+  {
+    id: 'dokter',
+    name: 'Dr. Arif',
+    role: 'Dokter Umum',
+    emoji: '🩺',
+    desc: 'Deck serbaguna dengan keahlian diagnosis. Cocok untuk pemula yang ingin mempelajari semua aspek medis.',
+    hp: 80,
+    maxHp: 80,
+    energy: 3,
+    maxEnergy: 3,
+    stats: { serangan: 0.6, pertahanan: 0.6, energi: 0.6 },
+    startDeck: ['diagnosis_dasar','diagnosis_dasar','treatment_analgesik','treatment_analgesik','prevention_hidrasi','prevention_hidrasi','treatment_antibiotik','diagnosis_cepat']
+  },
+  {
+    id: 'imunolog',
+    name: 'Dr. Sari',
+    role: 'Imunolog',
+    emoji: '🧬',
+    desc: 'Spesialis sistem imun. Membangun pertahanan berlapis tapi lemah di serangan langsung.',
+    hp: 70,
+    maxHp: 70,
+    energy: 3,
+    maxEnergy: 3,
+    stats: { serangan: 0.3, pertahanan: 0.9, energi: 0.6 },
+    startDeck: ['immune_boost','immune_boost','antibodi','antibodi','vaccine_prep','prevention_hidrasi','treatment_analgesik','diagnosis_dasar']
+  },
+  {
+    id: 'farmakolog',
+    name: 'Dr. Budi',
+    role: 'Farmakolog',
+    emoji: '💊',
+    desc: 'Ahli obat-obatan. Kartu sangat kuat tapi ada efek samping sebagai cost tersembunyi.',
+    hp: 65,
+    maxHp: 65,
+    energy: 4,
+    maxEnergy: 4,
+    stats: { serangan: 0.9, pertahanan: 0.3, energi: 0.9 },
+    startDeck: ['ppi_therapy','ppi_therapy','bronchodilator','antiplatelet','antiviral','treatment_analgesik','diagnosis_dasar','prevention_hidrasi']
+  },
+  {
+    id: 'patolog',
+    name: 'Dr. Maya',
+    role: 'Ahli Patologi',
+    emoji: '🔬',
+    desc: 'Ahli analisis penyakit. Debuff masif setelah setup. Tidak cocok untuk pemula.',
+    hp: 75,
+    maxHp: 75,
+    energy: 3,
+    maxEnergy: 3,
+    stats: { serangan: 0.7, pertahanan: 0.5, energi: 0.5 },
+    startDeck: ['kultur_bakteri','kultur_bakteri','biopsi','biopsi','diagnosis_dasar','treatment_analgesik','prevention_hidrasi','antiviral']
+  }
+];
+
+const ALL_CARDS = {
+  // STARTER
+  diagnosis_dasar: {
+    id:'diagnosis_dasar', name:'Diagnosis Dasar', emoji:'🔍', type:'diagnosis', cost:1,
+    desc:'Damage 6. Tarik 1 kartu.',
+    fact:'Anamnesis adalah langkah pertama diagnosis — dokter menggali riwayat penyakit pasien secara sistematis.',
+    effect: (gs) => { dealDamage(gs, 6); drawCards(gs, 1); }
+  },
+  treatment_analgesik: {
+    id:'treatment_analgesik', name:'Analgesik', emoji:'💊', type:'treatment', cost:1,
+    desc:'Damage 5. Pulihkan 4 HP.',
+    fact:'Analgesik bekerja menghambat prostaglandin — mediator nyeri di tubuh. Paracetamol adalah analgesik paling aman.',
+    effect: (gs) => { dealDamage(gs, 5); healPlayer(gs, 4); }
+  },
+  prevention_hidrasi: {
+    id:'prevention_hidrasi', name:'Hidrasi', emoji:'💧', type:'prevention', cost:0,
+    desc:'Pulihkan 8 HP. Tambah 1 energi.',
+    fact:'Air membantu ginjal membuang limbah, menjaga tekanan darah, dan mengatur suhu tubuh. Dewasa butuh ~2L/hari.',
+    effect: (gs) => { healPlayer(gs, 8); gs.energyLeft = Math.min(gs.energyLeft+1, gs.char.maxEnergy); renderEnergy(gs); }
+  },
+  treatment_antibiotik: {
+    id:'treatment_antibiotik', name:'Antibiotik', emoji:'💉', type:'treatment', cost:2,
+    desc:'Damage 14. Terapkan WEAK 2 giliran.',
+    fact:'Antibiotik membunuh atau menghambat bakteri — BUKAN virus. Penggunaan sembarangan menyebabkan resistensi antimikroba.',
+    effect: (gs) => { dealDamage(gs, 14); applyDebuff(gs, 'weak', 2); }
+  },
+  diagnosis_cepat: {
+    id:'diagnosis_cepat', name:'Rapid Test', emoji:'⚡', type:'diagnosis', cost:0,
+    desc:'Damage 4. Tarik 2 kartu.',
+    fact:'Rapid test mendeteksi antigen atau antibodi spesifik dalam hitungan menit — sangat berguna untuk triase awal.',
+    effect: (gs) => { dealDamage(gs, 4); drawCards(gs, 2); }
+  },
+
+  // IMUNOLOG
+  immune_boost: {
+    id:'immune_boost', name:'Immune Boost', emoji:'🛡️', type:'prevention', cost:1,
+    desc:'Gain 8 Shield. Tarik 1 kartu.',
+    fact:'Sistem imun adaptif menggunakan sel B dan T — limfosit yang "mengingat" patogen untuk respon lebih cepat di masa depan.',
+    effect: (gs) => { gainShield(gs, 8); drawCards(gs, 1); }
+  },
+  antibodi: {
+    id:'antibodi', name:'Antibodi', emoji:'🔰', type:'treatment', cost:2,
+    desc:'Damage 10. Gain 6 Shield.',
+    fact:'Antibodi (imunoglobulin) diproduksi sel plasma — turunan sel B — dan mengikat antigen spesifik untuk menetralisirnya.',
+    effect: (gs) => { dealDamage(gs, 10); gainShield(gs, 6); }
+  },
+  vaccine_prep: {
+    id:'vaccine_prep', name:'Vaksinasi', emoji:'💉', type:'prevention', cost:1,
+    desc:'Gain 12 Shield. Terapkan WEAK 1.',
+    fact:'Vaksin melatih sistem imun mengenali patogen tanpa menyebabkan penyakit. Ini herd immunity saat cakupan >95%.',
+    effect: (gs) => { gainShield(gs, 12); applyDebuff(gs, 'weak', 1); }
+  },
+
+  // FARMAKOLOG
+  ppi_therapy: {
+    id:'ppi_therapy', name:'PPI Therapy', emoji:'🔴', type:'treatment', cost:2,
+    desc:'Damage 18. Kurangi damage musuh 50% (2 giliran).',
+    fact:'Proton Pump Inhibitor (omeprazole, lansoprazole) menghambat H+/K+ ATPase — enzim yang memproduksi asam lambung.',
+    effect: (gs) => { dealDamage(gs, 18); gs.playerShield += 0; gs.enemyDebuffs.push({name:'slow',turns:2}); renderDebuffs(gs); }
+  },
+  bronchodilator: {
+    id:'bronchodilator', name:'Bronkodilator', emoji:'🫁', type:'emergency', cost:1,
+    desc:'Damage 8. Hilangkan 1 debuff. Tarik 2.',
+    fact:'Beta-2 agonis (salbutamol) merelaksasi otot polos bronkus — memperlebar saluran napas dalam 5-10 menit.',
+    effect: (gs) => { dealDamage(gs, 8); if(gs.playerDebuffs.length>0) gs.playerDebuffs.shift(); drawCards(gs, 2); }
+  },
+  antiplatelet: {
+    id:'antiplatelet', name:'Antiplatelet', emoji:'🩸', type:'treatment', cost:3,
+    desc:'Damage MASIF 28. Gain 4 HP.',
+    fact:'Aspirin menghambat siklooksigenase (COX) — mencegah agregasi trombosit dan pembentukan trombus dalam pembuluh darah.',
+    effect: (gs) => { dealDamage(gs, 28); healPlayer(gs, 4); }
+  },
+  antiviral: {
+    id:'antiviral', name:'Antiviral', emoji:'⚗️', type:'treatment', cost:2,
+    desc:'Damage 12. Terapkan BURN 3 giliran.',
+    fact:'Antiviral bekerja menghambat replikasi virus — berbeda dari antibiotik. Contoh: oseltamivir (Tamiflu) untuk influenza.',
+    effect: (gs) => { dealDamage(gs, 12); applyDebuff(gs, 'burn', 3); }
+  },
+
+  // PATOLOG
+  kultur_bakteri: {
+    id:'kultur_bakteri', name:'Kultur Bakteri', emoji:'🧫', type:'diagnosis', cost:1,
+    desc:'Damage 4. Terapkan WEAK + SLOW 2 giliran.',
+    fact:'Kultur bakteri mengidentifikasi organisme patogen dan sensitivitas antibiotik — gold standard untuk pemilihan terapi tepat.',
+    effect: (gs) => { dealDamage(gs, 4); applyDebuff(gs, 'weak', 2); applyDebuff(gs, 'slow', 2); }
+  },
+  biopsi: {
+    id:'biopsi', name:'Biopsi', emoji:'🔬', type:'diagnosis', cost:2,
+    desc:'Damage 6. Tarik 3 kartu. Gain 4 Shield.',
+    fact:'Biopsi mengambil jaringan untuk pemeriksaan histopatologi — satu-satunya cara diagnosis definitif untuk banyak tumor.',
+    effect: (gs) => { dealDamage(gs, 6); drawCards(gs, 3); gainShield(gs, 4); }
+  },
+
+  // REWARD POOL
+  kortikosteroid: {
+    id:'kortikosteroid', name:'Kortikosteroid', emoji:'⭐', type:'treatment', cost:2,
+    desc:'Damage 15. Gain 8 Shield. Tarik 1.',
+    fact:'Kortikosteroid (dexamethasone, prednisone) menekan sistem imun dan inflamasi — sangat berguna pada kondisi autoimun.',
+    effect: (gs) => { dealDamage(gs, 15); gainShield(gs, 8); drawCards(gs, 1); }
+  },
+  diuretik: {
+    id:'diuretik', name:'Diuretik', emoji:'💛', type:'treatment', cost:1,
+    desc:'Damage 9. Musuh kehilangan 1 intent.',
+    fact:'Diuretik (furosemide) meningkatkan produksi urin — digunakan untuk gagal jantung, edema, dan hipertensi.',
+    effect: (gs) => { dealDamage(gs, 9); healPlayer(gs, 2); }
+  },
+  rehabilitasi: {
+    id:'rehabilitasi', name:'Rehabilitasi', emoji:'🏥', type:'prevention', cost:1,
+    desc:'Pulihkan 20 HP. Gain 5 Shield.',
+    fact:'Rehabilitasi medis memulihkan fungsi tubuh setelah penyakit atau cedera — mencakup fisioterapi, okupasi terapi, dan speech therapy.',
+    effect: (gs) => { healPlayer(gs, 20); gainShield(gs, 5); }
+  },
+  ct_scan: {
+    id:'ct_scan', name:'CT Scan', emoji:'🔵', type:'diagnosis', cost:2,
+    desc:'Damage 10. Tarik 3 kartu. Terapkan STUN 1 giliran.',
+    fact:'CT Scan menggunakan sinar-X dari berbagai sudut untuk rekonstruksi 3D organ — sangat berguna untuk trauma dan tumor.',
+    effect: (gs) => { dealDamage(gs, 10); drawCards(gs, 3); applyDebuff(gs, 'stun', 1); }
+  },
+  fibrinolisis: {
+    id:'fibrinolisis', name:'Fibrinolisis', emoji:'🌟', type:'emergency', cost:3,
+    desc:'Damage MASIF 35. Tarik 2 kartu.',
+    fact:'Alteplase (tPA) melarutkan bekuan darah — terapi trombolitik harus diberikan dalam 4.5 jam onset stroke iskemik.',
+    effect: (gs) => { dealDamage(gs, 35); drawCards(gs, 2); }
+  },
+  oksigen_terapi: {
+    id:'oksigen_terapi', name:'Terapi Oksigen', emoji:'🫧', type:'treatment', cost:1,
+    desc:'Pulihkan 12 HP. Gain 10 Shield.',
+    fact:'Terapi oksigen meningkatkan saturasi SpO2 — target SpO2 ≥94% pada sebagian besar pasien dewasa sakit kritis.',
+    effect: (gs) => { healPlayer(gs, 12); gainShield(gs, 10); }
+  }
+};
+
+const STAGES = [
+  {
+    name: '🫀 Lambung', label: 'Stage 1 — Lambung',
+    enemies: [
+      { name:'Asam Berlebih', emoji:'🔴', type:'ACID PATHOGEN', hp:40, maxHp:40, atk:8, intent:'Asam Korosif (-8 HP)', fact:'GERD terjadi saat asam lambung naik ke esofagus, menyebabkan rasa terbakar di dada (heartburn).', debuffs:[] },
+      { name:'Mukosa Lemah', emoji:'🟡', type:'MUCOSAL LESION', hp:50, maxHp:50, atk:10, intent:'Erosi Mukosa (-10 HP)', fact:'Mukosa lambung dilindungi lapisan lendir tipis. Aspirin dan NSAID dapat merusak lapisan ini.', debuffs:[] }
+    ],
+    boss: { name:'Gastritis Erosif', emoji:'💀', type:'BOSS — GASTRIC', hp:90, maxHp:90, atk:15, intent:'Ulkus Peptik (-15 HP)', fact:'Gastritis erosif dapat disebabkan H. pylori — bakteri yang menghasilkan urease untuk menetralisir asam lambung.', debuffs:[] }
+  },
+  {
+    name: '🫁 Paru-paru', label: 'Stage 2 — Paru-paru',
+    enemies: [
+      { name:'Bronkospasme', emoji:'💨', type:'AIRWAY BLOCK', hp:45, maxHp:45, atk:10, intent:'Menyempitkan Bronkus (-10 HP)', fact:'Bronkospasme terjadi saat otot polos bronkus berkontraksi berlebihan — tanda khas asma bronkial.', debuffs:[] },
+      { name:'Mucus Wall', emoji:'🟢', type:'SECRETION BLOCK', hp:60, maxHp:60, atk:8, intent:'Sumbatan Lendir (-8 HP)', fact:'Produksi mukus berlebih pada PPOK menyumbat saluran napas kecil dan menurunkan kapasitas difusi O₂.', debuffs:[] }
+    ],
+    boss: { name:'Pneumonia Berat', emoji:'💀', type:'BOSS — PULMONARY', hp:100, maxHp:100, atk:18, intent:'Konsolidasi Paru (-18 HP)', fact:'Pneumonia mengisi alveoli dengan eksudat — mengganggu pertukaran gas. Saturasi O₂ bisa turun drastis dalam hitungan jam.', debuffs:[] }
+  },
+  {
+    name: '❤️ Jantung', label: 'Stage 3 — Jantung',
+    enemies: [
+      { name:'Plak LDL', emoji:'🟠', type:'ATHEROSCLEROSIS', hp:55, maxHp:55, atk:11, intent:'Deposit Kolesterol (-11 HP)', fact:'LDL teroksidasi menempel di dinding arteri, memicu inflamasi dan pembentukan plak aterosklerotik yang menyempitkan lumen.', debuffs:[] },
+      { name:'Aritmia', emoji:'⚡', type:'ELECTRICAL DISORDER', hp:50, maxHp:50, atk:14, intent:'Denyut Tidak Beraturan (-14 HP)', fact:'Aritmia fibrilasi atrium meningkatkan risiko stroke 5x lipat karena pembentukan trombus di aurikel kiri.', debuffs:[] }
+    ],
+    boss: { name:'Infark Miokard', emoji:'💀', type:'BOSS — CARDIAC', hp:120, maxHp:120, atk:22, intent:'Oklusi Koroner (-22 HP)', fact:'STEMI (ST-Elevation Myocardial Infarction) butuh reperfusi dalam 90 menit — "door-to-balloon time" adalah kunci keselamatan.', debuffs:[] }
+  }
+];
+
+const REWARD_POOL = ['kortikosteroid','diuretik','rehabilitasi','ct_scan','fibrinolisis','oksigen_terapi','antiviral','ppi_therapy'];
+
+// =================== GAME STATE ===================
+
+let gs = {
+  char: null,
+  hp: 80, maxHp: 80,
+  shield: 0,
+  energyLeft: 3,
+  deck: [], hand: [], discard: [],
+  enemy: null,
+  stageIdx: 0,
+  enemyIdx: 0,
+  isBoss: false,
+  turn: 0,
+  playerDebuffs: [],
+  enemyDebuffs: [],
+  collectedFacts: [],
+  pendingFact: null,
+  pendingRewardIdx: 0,
+  mapNodes: [],
+  currentNode: 0,
+  log: []
+};
+
+let selectedChar = null;
+
+// =================== SCREENS ===================
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+// =================== CHAR SELECT ===================
+
+function renderCharSelect() {
+  const grid = document.getElementById('char-grid');
+  grid.innerHTML = '';
+  CHARACTERS.forEach(ch => {
+    const div = document.createElement('div');
+    div.className = 'char-card';
+    div.onclick = () => selectChar(ch.id);
+    div.id = 'char-' + ch.id;
+    div.innerHTML = `
+      <div class="char-emoji">${ch.emoji}</div>
+      <div class="char-name">${ch.name}</div>
+      <div class="char-role">${ch.role}</div>
+      <div class="char-desc">${ch.desc}</div>
+      <div class="stat-row"><span>Serangan</span><span>${Math.round(ch.stats.serangan*100)}%</span></div>
+      <div class="stat-bar"><div class="stat-fill" style="width:${ch.stats.serangan*100}%;background:#f85149;"></div></div>
+      <div class="stat-row"><span>Pertahanan</span><span>${Math.round(ch.stats.pertahanan*100)}%</span></div>
+      <div class="stat-bar"><div class="stat-fill" style="width:${ch.stats.pertahanan*100}%;background:#58a6ff;"></div></div>
+      <div class="stat-row"><span>Energi</span><span>${Math.round(ch.stats.energi*100)}%</span></div>
+      <div class="stat-bar"><div class="stat-fill" style="width:${ch.stats.energi*100}%;background:#d29922;"></div></div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function selectChar(id) {
+  selectedChar = id;
+  document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('char-' + id).classList.add('selected');
+  const btn = document.getElementById('btn-start-run');
+  btn.style.opacity = '1';
+  btn.style.cursor = 'pointer';
+  btn.disabled = false;
+}
+
+// =================== RUN START ===================
+
+function startRun() {
+  const ch = CHARACTERS.find(c => c.id === selectedChar);
+  gs = {
+    char: ch,
+    hp: ch.maxHp, maxHp: ch.maxHp,
+    shield: 0,
+    energyLeft: ch.maxEnergy,
+    deck: [...ch.startDeck], hand: [], discard: [],
+    enemy: null,
+    stageIdx: 0,
+    enemyIdx: 0,
+    isBoss: false,
+    turn: 0,
+    playerDebuffs: [],
+    enemyDebuffs: [],
+    collectedFacts: [],
+    pendingFact: null,
+    log: []
+  };
+  shuffle(gs.deck);
+  showMap();
+}
+
+function showMap() {
+  const stage = STAGES[gs.stageIdx];
+  document.getElementById('map-stage-label').textContent = stage.label;
+  document.getElementById('map-hp').textContent = gs.hp + '/' + gs.maxHp;
+
+  const container = document.getElementById('map-nodes');
+  container.innerHTML = '';
+
+  // Row 1: enemies
+  const row1 = document.createElement('div');
+  row1.className = 'map-row';
+  stage.enemies.forEach((e, i) => {
+    const node = document.createElement('div');
+    node.className = 'map-node';
+    const nodeIdx = i;
+    if (gs.enemyIdx > nodeIdx) node.classList.add('completed');
+    else if (gs.enemyIdx === nodeIdx) node.classList.add('current');
+    else node.classList.add('locked');
+    node.innerHTML = e.emoji + '<span class="node-label">' + e.name + '</span>';
+    if (gs.enemyIdx === nodeIdx) {
+      node.onclick = () => startBattle(false, i);
+    }
+    row1.appendChild(node);
+  });
+  container.appendChild(row1);
+
+  // Boss
+  const row2 = document.createElement('div');
+  row2.className = 'map-row';
+  const bossNode = document.createElement('div');
+  bossNode.className = 'map-node boss';
+  if (gs.enemyIdx < stage.enemies.length) bossNode.classList.add('locked');
+  else if (gs.enemyIdx === stage.enemies.length) bossNode.classList.add('current');
+  else bossNode.classList.add('completed');
+  bossNode.innerHTML = stage.boss.emoji + '<span class="node-label">BOSS</span>';
+  if (gs.enemyIdx === stage.enemies.length) {
+    bossNode.onclick = () => startBattle(true, 0);
+  }
+  row2.appendChild(bossNode);
+  container.appendChild(row2);
+
+  showScreen('map');
+}
+
+// =================== BATTLE ===================
+
+function startBattle(isBoss, idx) {
+  const stage = STAGES[gs.stageIdx];
+  gs.isBoss = isBoss;
+  gs.shield = 0;
+  gs.playerDebuffs = [];
+  gs.log = [];
+
+  const enemyTemplate = isBoss ? stage.boss : stage.enemies[idx];
+  gs.enemy = JSON.parse(JSON.stringify(enemyTemplate));
+  gs.enemyDebuffs = [];
+
+  gs.hand = [];
+  gs.discard = [];
+  gs.deck = [...gs.char.startDeck, ...gs.deck.filter(c => !gs.char.startDeck.includes(c))];
+  // Build full deck from char deck
+  gs.deck = [...gs.char.startDeck];
+  shuffle(gs.deck);
+  gs.turn = 0;
+
+  document.getElementById('hud-char-name').textContent = gs.char.emoji + ' ' + gs.char.name;
+  document.getElementById('hud-stage').textContent = stage.label.toUpperCase();
+
+  addLog('system', '⚔️ Pertarungan dimulai vs ' + gs.enemy.name);
+
+  startPlayerTurn();
+  showScreen('game');
+  renderAll();
+}
+
+function startPlayerTurn() {
+  gs.turn++;
+  gs.energyLeft = gs.char.maxEnergy;
+  drawCards(gs, 5);
+  renderAll();
+  addLog('player', '🔄 Giliran ' + gs.turn + ' dimulai. Energi: ' + gs.energyLeft);
+
+  // Process player debuffs
+  gs.playerDebuffs = gs.playerDebuffs.map(d => ({...d, turns: d.turns-1})).filter(d => d.turns > 0);
+}
+
+function endTurn() {
+  // Discard hand
+  gs.discard.push(...gs.hand);
+  gs.hand = [];
+
+  // Enemy action
+  enemyAction();
+}
+
+function enemyAction() {
+  if (!gs.enemy || gs.enemy.hp <= 0) return;
+
+  // Check stun
+  const stunned = gs.enemyDebuffs.find(d => d.name === 'stun');
+  if (stunned) {
+    addLog('enemy', '😵 ' + gs.enemy.name + ' terstun, tidak bisa menyerang!');
+  } else {
+    let dmg = gs.enemy.atk;
+    const weak = gs.enemyDebuffs.find(d => d.name === 'weak');
+    const slow = gs.enemyDebuffs.find(d => d.name === 'slow');
+    if (weak) dmg = Math.floor(dmg * 0.5);
+    if (slow) dmg = Math.floor(dmg * 0.7);
+
+    // Apply burn DoT
+    const burn = gs.enemyDebuffs.find(d => d.name === 'burn');
+    if (burn) {
+      const burnDmg = 6;
+      gs.enemy.hp = Math.max(0, gs.enemy.hp - burnDmg);
+      addLog('system', '🔥 Burn! ' + gs.enemy.name + ' menerima ' + burnDmg + ' damage DoT');
+      if (gs.enemy.hp <= 0) { enemyDied(); return; }
+    }
+
+    // Absorb with shield
+    let actualDmg = dmg;
+    if (gs.shield > 0) {
+      const absorbed = Math.min(gs.shield, actualDmg);
+      gs.shield -= absorbed;
+      actualDmg -= absorbed;
+      if (absorbed > 0) addLog('player', '🛡️ Shield menyerap ' + absorbed + ' damage');
+    }
+    gs.hp = Math.max(0, gs.hp - actualDmg);
+    if (actualDmg > 0) {
+      addLog('enemy', '💢 ' + gs.enemy.name + ' menyerang ' + actualDmg + ' damage!');
+      floatText('-' + actualDmg, 'damage', 200, 200);
+      document.getElementById('player-hp-bar').classList.add('shake');
+      setTimeout(() => document.getElementById('player-hp-bar').classList.remove('shake'), 300);
+    }
+  }
+
+  // Decay enemy debuffs
+  gs.enemyDebuffs = gs.enemyDebuffs.map(d => ({...d, turns: d.turns-1})).filter(d => d.turns > 0);
+  renderDebuffs(gs);
+
+  if (gs.hp <= 0) { gameOver(); return; }
+
+  startPlayerTurn();
+  renderAll();
+}
+
+// =================== CARD EFFECTS ===================
+
+function dealDamage(gs, amt) {
+  if (!gs.enemy) return;
+  gs.enemy.hp = Math.max(0, gs.enemy.hp - amt);
+  addLog('player', '⚔️ Damage ' + amt + ' ke ' + gs.enemy.name);
+  floatText('-' + amt, 'damage', 400, 300);
+  document.getElementById('enemy-card').classList.add('pulse');
+  setTimeout(() => document.getElementById('enemy-card').classList.remove('pulse'), 400);
+  if (gs.enemy.hp <= 0) setTimeout(enemyDied, 300);
+}
+
+function healPlayer(gs, amt) {
+  gs.hp = Math.min(gs.maxHp, gs.hp + amt);
+  addLog('heal', '💚 Pulihkan ' + amt + ' HP');
+  floatText('+' + amt, 'heal-float', 200, 200);
+}
+
+function gainShield(gs, amt) {
+  gs.shield += amt;
+  addLog('player', '🛡️ +' + amt + ' Shield');
+  floatText('+' + amt + '🛡️', 'shield', 200, 250);
+}
+
+function drawCards(gs, n) {
+  for (let i = 0; i < n; i++) {
+    if (gs.deck.length === 0) {
+      gs.deck = [...gs.discard];
+      gs.discard = [];
+      shuffle(gs.deck);
+      if (gs.deck.length === 0) break;
+    }
+    const cardId = gs.deck.shift();
+    if (ALL_CARDS[cardId]) gs.hand.push(cardId);
+  }
+}
+
+function applyDebuff(gs, name, turns) {
+  const existing = gs.enemyDebuffs.find(d => d.name === name);
+  if (existing) existing.turns += turns;
+  else gs.enemyDebuffs.push({ name, turns });
+  addLog('player', '🧪 ' + name.toUpperCase() + ' x' + turns + ' diterapkan!');
+  renderDebuffs(gs);
+}
+
+function enemyDied() {
+  addLog('system', '✅ ' + gs.enemy.name + ' dikalahkan!');
+  gs.enemy = null;
+
+  const stage = STAGES[gs.stageIdx];
+  gs.enemyIdx++;
+
+  // Show fact
+  const fact = gs.isBoss ? stage.boss.fact : stage.enemies[gs.enemyIdx-1].fact;
+  gs.pendingFact = { emoji: gs.isBoss ? stage.boss.emoji : stage.enemies[gs.enemyIdx-1].emoji, title: gs.isBoss ? stage.boss.name : stage.enemies[gs.enemyIdx-1].name, body: fact, tag: stage.name };
+  gs.collectedFacts.push(gs.pendingFact.title + ': ' + fact);
+
+  showFactCard(() => {
+    if (gs.isBoss) {
+      // Show reward then next stage
+      gs.stageIdx++;
+      gs.enemyIdx = 0;
+      showReward();
+    } else {
+      showReward();
+    }
+  });
+}
+
+// =================== PLAY CARD ===================
+
+function playCard(idx) {
+  if (idx >= gs.hand.length) return;
+  const cardId = gs.hand[idx];
+  const card = ALL_CARDS[cardId];
+  if (!card) return;
+  if (gs.energyLeft < card.cost) { addLog('system', '⚠️ Energi tidak cukup!'); return; }
+  if (!gs.enemy && card.type !== 'prevention') { addLog('system', '⚠️ Tidak ada musuh!'); return; }
+
+  gs.energyLeft -= card.cost;
+  gs.hand.splice(idx, 1);
+  gs.discard.push(cardId);
+
+  addLog('player', '🃏 Dimainkan: ' + card.name);
+  card.effect(gs);
+
+  renderAll();
+}
+
+// =================== RENDER ===================
+
+function renderAll() {
+  renderHpBars();
+  renderEnergy(gs);
+  renderHand();
+  renderLog();
+  renderDeckInfo();
+  renderEnemyFact();
+}
+
+function renderHpBars() {
+  const hpPct = (gs.hp / gs.maxHp) * 100;
+  document.getElementById('player-hp-bar').style.width = hpPct + '%';
+  document.getElementById('player-hp-bar').style.background = hpPct > 50 ? '#3fb950' : hpPct > 25 ? '#d29922' : '#f85149';
+  document.getElementById('player-hp-text').textContent = gs.hp + '/' + gs.maxHp + (gs.shield > 0 ? ' 🛡️' + gs.shield : '');
+
+  if (gs.enemy) {
+    const ePct = (gs.enemy.hp / gs.enemy.maxHp) * 100;
+    document.getElementById('enemy-hp-bar').style.width = ePct + '%';
+    document.getElementById('enemy-hp-text').textContent = gs.enemy.hp + '/' + gs.enemy.maxHp;
+    document.getElementById('enemy-emoji').textContent = gs.enemy.emoji;
+    document.getElementById('enemy-name').textContent = gs.enemy.name;
+    document.getElementById('enemy-type').textContent = gs.enemy.type;
+    document.getElementById('enemy-intent').innerHTML = '<span>⚔️</span><span>' + gs.enemy.intent + '</span>';
+  }
+}
+
+function renderEnergy(gs) {
+  const cont = document.getElementById('energy-dots');
+  cont.innerHTML = '<span style="font-size:13px;color:var(--muted);">Energi:</span>';
+  for (let i = 0; i < gs.char.maxEnergy; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'energy-dot' + (i >= gs.energyLeft ? ' empty' : '');
+    cont.appendChild(dot);
+  }
+  cont.innerHTML += '<span style="font-size:12px;font-family:\'Space Mono\',monospace;">' + gs.energyLeft + '/' + gs.char.maxEnergy + '</span>';
+}
+
+function renderHand() {
+  const cont = document.getElementById('hand-cards');
+  cont.innerHTML = '';
+  gs.hand.forEach((cardId, idx) => {
+    const card = ALL_CARDS[cardId];
+    if (!card) return;
+    const canPlay = gs.energyLeft >= card.cost && (gs.enemy || card.type === 'prevention');
+    const div = document.createElement('div');
+    div.className = 'play-card' + (canPlay ? '' : ' disabled');
+    div.onclick = () => { if (canPlay) playCard(idx); };
+    div.innerHTML = `
+      <div class="card-cost ${card.cost === 0 ? 'free' : ''}">${card.cost}</div>
+      <div class="card-icon">${card.emoji}</div>
+      <div class="card-title">${card.name}</div>
+      <div class="card-type-badge type-${card.type}">${card.type.toUpperCase()}</div>
+      <div class="card-desc">${card.desc}</div>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+function renderDebuffs(gs) {
+  const cont = document.getElementById('enemy-debuffs');
+  cont.innerHTML = '';
+  gs.enemyDebuffs.forEach(d => {
+    const span = document.createElement('span');
+    span.className = 'debuff-tag ' + d.name;
+    span.textContent = d.name.toUpperCase() + ' ' + d.turns;
+    cont.appendChild(span);
+  });
+}
+
+function renderLog() {
+  const cont = document.getElementById('log-entries');
+  const entries = gs.log.slice(-12);
+  cont.innerHTML = '';
+  entries.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'log-entry ' + e.type;
+    div.textContent = e.text;
+    cont.appendChild(div);
+  });
+  cont.scrollTop = cont.scrollHeight;
+}
+
+function renderDeckInfo() {
+  document.getElementById('deck-count').textContent = gs.deck.length;
+  document.getElementById('discard-count').textContent = gs.discard.length;
+  document.getElementById('hand-count').textContent = gs.hand.length;
+}
+
+function renderEnemyFact() {
+  if (gs.enemy) {
+    document.getElementById('enemy-fact').textContent = gs.enemy.fact;
+  }
+}
+
+// =================== FACT CARD ===================
+
+let factCallback = null;
+
+function showFactCard(cb) {
+  factCallback = cb;
+  const f = gs.pendingFact;
+  document.getElementById('fact-emoji').textContent = f.emoji;
+  document.getElementById('fact-tag').textContent = f.tag + ' — FACT CARD';
+  document.getElementById('fact-title').textContent = f.title;
+  document.getElementById('fact-body').textContent = f.body;
+  document.getElementById('fact-overlay').classList.add('active');
+}
+
+function closeFact() {
+  document.getElementById('fact-overlay').classList.remove('active');
+  if (factCallback) { factCallback(); factCallback = null; }
+}
+
+// =================== REWARD ===================
+
+function showReward() {
+  const pool = [...REWARD_POOL];
+  shuffle(pool);
+  const choices = pool.slice(0, 3);
+
+  const cont = document.getElementById('reward-cards');
+  cont.innerHTML = '';
+  choices.forEach(cardId => {
+    const card = ALL_CARDS[cardId];
+    if (!card) return;
+    const div = document.createElement('div');
+    div.className = 'reward-card';
+    div.onclick = () => addCardToDeck(cardId);
+    div.innerHTML = `
+      <div style="font-size:36px;margin-bottom:8px;">${card.emoji}</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px;">${card.name}</div>
+      <div style="font-size:11px;font-family:'Space Mono',monospace;margin-bottom:8px;color:var(--muted);">COST: ${card.cost} ⚡</div>
+      <div class="card-type-badge type-${card.type}" style="display:block;margin-bottom:8px;">${card.type.toUpperCase()}</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5;">${card.desc}</div>
+    `;
+    cont.appendChild(div);
+  });
+
+  showScreen('reward');
+}
+
+function addCardToDeck(cardId) {
+  gs.char.startDeck.push(cardId);
+  addLog('system', '✨ ' + ALL_CARDS[cardId].name + ' ditambahkan ke deck!');
+  proceedAfterReward();
+}
+
+function skipReward() {
+  proceedAfterReward();
+}
+
+function proceedAfterReward() {
+  if (gs.stageIdx >= STAGES.length) {
+    gameWin();
+  } else {
+    showMap();
+  }
+}
+
+// =================== GAME OVER / WIN ===================
+
+function gameOver() {
+  document.getElementById('over-sub').innerHTML = 'HP kamu habis melawan penyakit.<br>Tapi pengetahuan yang diperoleh tidak hilang.';
+  const facts = gs.collectedFacts;
+  document.getElementById('collected-facts').textContent = facts.length > 0 ? facts.map((f,i) => (i+1)+'. '+f.split(':')[0]).join('\n') : 'Belum ada fakta terkumpul.';
+  showScreen('over');
+}
+
+function gameWin() {
+  const facts = gs.collectedFacts;
+  document.getElementById('win-facts').innerHTML = facts.map((f,i) => `<div style="margin-bottom:6px;"><span style="color:var(--green);font-weight:600;">${i+1}.</span> ${f}</div>`).join('');
+  showScreen('win');
+}
+
+function restartGame() {
+  selectedChar = null;
+  showScreen('char');
+  renderCharSelect();
+}
+
+// =================== UTILS ===================
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function addLog(type, text) {
+  gs.log.push({ type, text });
+  renderLog();
+}
+
+function floatText(text, type, x, y) {
+  const el = document.createElement('div');
+  el.className = 'dmg-float ' + type;
+  el.textContent = text;
+  el.style.left = (100 + Math.random() * 200) + 'px';
+  el.style.top = (250 + Math.random() * 100) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+// =================== INIT ===================
+renderCharSelect();
+</script>
+</body>
+</html>
